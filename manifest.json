@@ -1,0 +1,11 @@
+{
+	"id": "browser-bookmarks-in-obsidian",
+	"name": "Browser Bookmarks in Obsidian",
+	"version": "0.0.1",
+	"minAppVersion": "0.15.0",
+	"description": "Browser Bookmarks in Obsidian Note",
+	"author": "chern-kp",
+	"authorUrl": "https://github.com/chern-kp",
+	"fundingUrl": "https://github.com/chern-kp",
+	"isDesktopOnly": true
+}
