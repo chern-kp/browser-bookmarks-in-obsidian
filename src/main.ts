@@ -37,11 +37,17 @@ export default class MyPlugin extends Plugin {
                 el.createEl('div').setText('Bookmarks data not loaded.');
                 return;
             }
-
-            const markdown = this.bookmarksFetcher.generateBookmarkListMarkdown(this.bookmarksFetcher.bookmarksData.roots.bookmark_bar.children || [], 0);
-
+        
+            const rootFolder = this.parseRootFolder(source);
+            const markdown = this.bookmarksFetcher.generateBookmarkListMarkdown(
+                this.bookmarksFetcher.bookmarksData.roots.bookmark_bar.children || [],
+                0,
+                rootFolder
+            );
+        
             await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
         });
+        
     }
 
     onunload() {
@@ -55,6 +61,12 @@ export default class MyPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
     }
+
+    private parseRootFolder(source: string): string | null {
+        const match = source.match(/RootFolder:\s*(.+)/);
+        return match ? match[1].trim() : null;
+    }
+    
 }
 
 // ! Settings Tab

@@ -123,8 +123,18 @@ export class VivaldiBookmarksFetcher {
         }
     }
 
-    generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0): string {
+    generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolder: string | null = null): string {
         let markdown = '';
+        
+        if (rootFolder) {
+            const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
+            if (rootNode) {
+                markdown += `- **${rootNode.name}**\n`;
+                return markdown + this.generateBookmarkListMarkdown(rootNode.children || [], 1);
+            } else {
+                return `- Root folder "${rootFolder}" not found.\n`;
+            }
+        }
         
         const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
         
@@ -156,6 +166,20 @@ export class VivaldiBookmarksFetcher {
         return markdown;
     }
     
+    private findFolderByName(nodes: BookmarkNode[], folderName: string): BookmarkNode | null {
+        for (const node of nodes) {
+            if (node.type === 'folder' && node.name === folderName) {
+                return node;
+            }
+            if (node.type === 'folder' && node.children) {
+                const foundNode = this.findFolderByName(node.children, folderName);
+                if (foundNode) {
+                    return foundNode;
+                }
+            }
+        }
+        return null;
+    }
 
     getBookmarksByRootAndDepth(rootIndex: number, depth: number): BookmarkNode[] {
         if (!this.bookmarksData) {
