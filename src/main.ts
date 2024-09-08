@@ -1,6 +1,7 @@
 import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS } from './settings/settings';
-import { VivaldiBookmarksFetcher} from './fetcher/VivaldiBookmarksFetcher'; // Adjust the path based on your file structure
+import { VivaldiBookmarksFetcher } from './fetcher/VivaldiBookmarksFetcher'; // Adjust the path based on your file structure
+import { EditBookmarkModal } from './EditBookmarkModal';
 import fs from 'fs';
 
 export default class MyPlugin extends Plugin {
@@ -32,22 +33,64 @@ export default class MyPlugin extends Plugin {
         this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
         // ! "Bookmark" code block
+
+
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
             if (!this.bookmarksFetcher || !this.bookmarksFetcher.bookmarksData) {
                 el.createEl('div').setText('Bookmarks data not loaded.');
                 return;
             }
-        
+
             const rootFolder = this.parseRootFolder(source);
+            const isEditable = this.parseIsEditable(source);
             const markdown = this.bookmarksFetcher.generateBookmarkListMarkdown(
                 this.bookmarksFetcher.bookmarksData.roots.bookmark_bar.children || [],
                 0,
-                rootFolder
+                rootFolder,
+                isEditable
             );
-        
+
             await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
+
+            if (isEditable) {
+                el.querySelectorAll('.edit-icon').forEach(icon => {
+                    icon.addEventListener('click', (event) => {
+                        const target = event.target as HTMLElement;
+                        const parentElement = target.parentElement;
+
+                        if (parentElement) {
+                            let itemType = '';
+                            let initialTitle = '';
+                            let initialUrl = '';
+
+                            const boldElement = parentElement.querySelector('strong, b');
+                            if (boldElement) {
+                                itemType = 'Folder';
+                                initialTitle = boldElement.textContent?.trim() || '';
+                            }
+                            else {
+                                const linkElement = parentElement.querySelector('a');
+                                if (linkElement) {
+                                    itemType = 'Bookmark';
+                                    initialTitle = linkElement.textContent?.trim() || '';
+                                    initialUrl = linkElement.getAttribute('href') || '';
+                                }
+                            }
+                            if (parentElement.textContent?.startsWith('Description:')) {
+                                itemType = 'Description';
+                                initialTitle = parentElement.textContent.replace('Description:', '').trim();
+                            }
+                            else if (parentElement.textContent?.startsWith('Short Name:')) {
+                                itemType = 'Short Name';
+                                initialTitle = parentElement.textContent.replace('Short Name:', '').trim();
+                            }
+
+                            new EditBookmarkModal(this.app, itemType, initialTitle, initialUrl).open();
+                        }
+                    });
+                });
+            }
         });
-        
     }
 
     onunload() {
@@ -66,7 +109,11 @@ export default class MyPlugin extends Plugin {
         const match = source.match(/RootFolder:\s*(.+)/);
         return match ? match[1].trim() : null;
     }
-    
+
+    private parseIsEditable(source: string): boolean {
+        const match = source.match(/isEditable:\s*(true|false)/i);
+        return match ? match[1].toLowerCase() === 'true' : false;
+    }
 }
 
 // ! Settings Tab

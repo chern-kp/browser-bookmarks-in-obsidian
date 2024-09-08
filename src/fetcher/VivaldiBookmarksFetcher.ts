@@ -123,48 +123,64 @@ export class VivaldiBookmarksFetcher {
         }
     }
 
-    generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolder: string | null = null): string {
-        let markdown = '';
-        
-        if (rootFolder) {
-            const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
-            if (rootNode) {
-                markdown += `- **${rootNode.name}**\n`;
-                return markdown + this.generateBookmarkListMarkdown(rootNode.children || [], 1);
-            } else {
-                return `- Root folder "${rootFolder}" not found.\n`;
-            }
+generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolder: string | null = null, isEditable = false): string {
+    let markdown = '';
+
+    if (rootFolder) {
+        const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
+        if (rootNode) {
+            markdown += `- **${rootNode.name}**\n`;
+            return markdown + this.generateBookmarkListMarkdown(rootNode.children || [], 1, null, isEditable);
+        } else {
+            return `- Root folder "${rootFolder}" not found.\n`;
         }
-        
-        const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
-        
-        if (depth === 0) {
-            markdown += `- **${rootName}**\n`;
-            depth += 1; 
-        }
-    
-        for (const node of bookmarkNodes) {
-            const indent = '  '.repeat(depth);
-            if (node.type === 'url') {
-                markdown += `${indent}- [${node.name}](${node.url})\n`;
-                if (node.meta_info && (node.meta_info.Description || node.meta_info.Nickname)) {
-                    const descriptionIndent = '  '.repeat(depth + 1);
-                    if (node.meta_info.Description) {
-                        markdown += `${descriptionIndent}- Description: ${node.meta_info.Description}\n`;
-                    }
-                    if (node.meta_info.Nickname) {
-                        markdown += `${descriptionIndent}- Short Name: ${node.meta_info.Nickname}\n`;
-                    }
-                }
-            } else if (node.type === 'folder') {
-                markdown += `${indent}- **${node.name}**\n`;
-                if (node.children) {
-                    markdown += this.generateBookmarkListMarkdown(node.children, depth + 1);
-                }
-            }
-        }
-        return markdown;
     }
+
+    const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
+
+    if (depth === 0) {
+        markdown += `- **${rootName}**\n`;
+        depth += 1; 
+    }
+
+    for (const node of bookmarkNodes) {
+        const indent = '  '.repeat(depth);
+        if (node.type === 'url') {
+            markdown += `${indent}- [${node.name}](${node.url})`;
+            if (isEditable) {
+                markdown += `<span class="edit-icon">✏️</span>`;
+            }
+            markdown += '\n';
+            if (node.meta_info && (node.meta_info.Description || node.meta_info.Nickname)) {
+                const descriptionIndent = '  '.repeat(depth + 1);
+                if (node.meta_info.Description) {
+                    markdown += `${descriptionIndent}- Description: ${node.meta_info.Description}`;
+                    if (isEditable) {
+                        markdown += `<span class="edit-icon">✏️</span>`;
+                    }
+                    markdown += '\n';
+                }
+                if (node.meta_info.Nickname) {
+                    markdown += `${descriptionIndent}- Short Name: ${node.meta_info.Nickname}`;
+                    if (isEditable) {
+                        markdown += `<span class="edit-icon">✏️</span>`;
+                    }
+                    markdown += '\n';
+                }
+            }
+        } else if (node.type === 'folder') {
+            markdown += `${indent}- **${node.name}**`;
+            if (isEditable) {
+                markdown += `<span class="edit-icon">✏️</span>`;
+            }
+            markdown += '\n';
+            if (node.children) {
+                markdown += this.generateBookmarkListMarkdown(node.children, depth + 1, null, isEditable);
+            }
+        }
+    }
+    return markdown;
+}
     
     private findFolderByName(nodes: BookmarkNode[], folderName: string): BookmarkNode | null {
         for (const node of nodes) {
