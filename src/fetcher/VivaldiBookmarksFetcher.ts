@@ -125,6 +125,14 @@ export class VivaldiBookmarksFetcher {
 
     generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0): string {
         let markdown = '';
+        
+        const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
+        
+        if (depth === 0) {
+            markdown += `- **${rootName}**\n`;
+            depth += 1; 
+        }
+    
         for (const node of bookmarkNodes) {
             const indent = '  '.repeat(depth);
             if (node.type === 'url') {
@@ -147,6 +155,7 @@ export class VivaldiBookmarksFetcher {
         }
         return markdown;
     }
+    
 
     getBookmarksByRootAndDepth(rootIndex: number, depth: number): BookmarkNode[] {
         if (!this.bookmarksData) {
