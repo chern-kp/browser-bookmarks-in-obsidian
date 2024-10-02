@@ -50,13 +50,13 @@ export class EditBookmarkModal extends Modal {
         }
 
         new Setting(contentEl)
-        .addButton((btn) =>
-            btn
-                .setButtonText('Close')
-                .onClick(() => {
-                    this.close();
-                })
-        )
+            .addButton((btn) =>
+                btn
+                    .setButtonText('Close')
+                    .onClick(() => {
+                        this.close();
+                    })
+            )
             .addButton((btn) =>
                 btn
                     .setButtonText('Save')

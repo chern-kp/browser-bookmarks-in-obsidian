@@ -32,3 +32,4 @@ test-vault/
 esbuild.config.mjs
 package-lock.json
 .editorconfig
+/src/bookmark_file_example.json

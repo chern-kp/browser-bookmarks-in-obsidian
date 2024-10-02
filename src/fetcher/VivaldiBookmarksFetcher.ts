@@ -33,16 +33,58 @@ interface BookmarksData {
 
 export class VivaldiBookmarksFetcher {
     bookmarksData: BookmarksData | null = null;
+    private bookmarkIndex: { [guid: string]: { node: BookmarkNode, type: string } } = {};
+
     constructor(private filePath: string) { }
 
     async loadBookmarks(): Promise<void> {
         try {
             const fileContent = await fsPromises.readFile(this.filePath, 'utf-8');
             this.bookmarksData = JSON.parse(fileContent) as BookmarksData;
+            this.buildBookmarkIndex(); 
         } catch (error) {
             console.error('Error loading bookmarks file:', error);
             throw error;
         }
+    }
+
+    private buildBookmarkIndex(): void {
+        if (!this.bookmarksData) return;
+
+        const traverseAndIndex = (node: BookmarkNode) => {
+            let type: string;
+
+            if (node.type === 'folder') {
+                if (node.meta_info?.Description) {
+                    type = 'Folder Description';
+                } else if (node.meta_info?.Nickname) {
+                    type = 'Folder Short Name';
+                } else {
+                    type = 'Folder';
+                }
+            } else {
+                if (node.meta_info?.Description) {
+                    type = 'Bookmark Description';
+                } else if (node.meta_info?.Nickname) {
+                    type = 'Bookmark Short Name';
+                } else {
+                    type = 'Bookmark';
+                }
+            }
+
+            this.bookmarkIndex[node.guid] = { node, type };
+
+            if (node.children) {
+                for (const child of node.children) {
+                    traverseAndIndex(child);
+                }
+            }
+        };
+
+        traverseAndIndex(this.bookmarksData.roots.bookmark_bar);
+        traverseAndIndex(this.bookmarksData.roots.other);
+        traverseAndIndex(this.bookmarksData.roots.synced);
+        traverseAndIndex(this.bookmarksData.roots.trash);
     }
 
     getAllBookmarks(): BookmarkNode[] {
@@ -79,6 +121,19 @@ export class VivaldiBookmarksFetcher {
         return bookmarksInFolder;
     }
 
+    getBookmarkByGuid(guid: string): { node: BookmarkNode, type: string } | null {
+        return this.bookmarkIndex[guid] || null;
+    }
+
+    updateBookmarkByGuid(guid: string, updatedData: Partial<BookmarkNode>): boolean {
+        const bookmark = this.getBookmarkByGuid(guid);
+        if (bookmark) {
+            Object.assign(bookmark, updatedData);
+            return true;
+        }
+        return false;
+    }
+
     private findBookmarksInFolder(node: BookmarkNode, folderName: string, result: BookmarkNode[]): boolean {
         if (node.type === 'folder' && node.name === folderName) {
             if (node.children) {
@@ -96,6 +151,7 @@ export class VivaldiBookmarksFetcher {
                 }
             }
         }
+
         return false;
     }
 
@@ -123,65 +179,67 @@ export class VivaldiBookmarksFetcher {
         }
     }
 
-generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolder: string | null = null, isEditable = false): string {
-    let markdown = '';
+    generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolder: string | null = null, isEditable = false): string {
+        let markdown = '';
 
-    if (rootFolder) {
-        const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
-        if (rootNode) {
-            markdown += `- **${rootNode.name}**\n`;
-            return markdown + this.generateBookmarkListMarkdown(rootNode.children || [], 1, null, isEditable);
-        } else {
-            return `- Root folder "${rootFolder}" not found.\n`;
-        }
-    }
-
-    const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
-
-    if (depth === 0) {
-        markdown += `- **${rootName}**\n`;
-        depth += 1; 
-    }
-
-    for (const node of bookmarkNodes) {
-        const indent = '  '.repeat(depth);
-        if (node.type === 'url') {
-            markdown += `${indent}- [${node.name}](${node.url})`;
-            if (isEditable) {
-                markdown += `<span class="edit-icon">✏️</span>`;
-            }
-            markdown += '\n';
-            if (node.meta_info && (node.meta_info.Description || node.meta_info.Nickname)) {
-                const descriptionIndent = '  '.repeat(depth + 1);
-                if (node.meta_info.Description) {
-                    markdown += `${descriptionIndent}- Description: ${node.meta_info.Description}`;
-                    if (isEditable) {
-                        markdown += `<span class="edit-icon">✏️</span>`;
-                    }
-                    markdown += '\n';
-                }
-                if (node.meta_info.Nickname) {
-                    markdown += `${descriptionIndent}- Short Name: ${node.meta_info.Nickname}`;
-                    if (isEditable) {
-                        markdown += `<span class="edit-icon">✏️</span>`;
-                    }
-                    markdown += '\n';
-                }
-            }
-        } else if (node.type === 'folder') {
-            markdown += `${indent}- **${node.name}**`;
-            if (isEditable) {
-                markdown += `<span class="edit-icon">✏️</span>`;
-            }
-            markdown += '\n';
-            if (node.children) {
-                markdown += this.generateBookmarkListMarkdown(node.children, depth + 1, null, isEditable);
+        if (rootFolder) {
+            const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
+            if (rootNode) {
+                markdown += `- **${rootNode.name}**\n`;
+                return markdown + this.generateBookmarkListMarkdown(rootNode.children || [], 1, null, isEditable);
+            } else {
+                return `- Root folder "${rootFolder}" not found.\n`;
             }
         }
+
+        const rootName = this.bookmarksData?.roots.bookmark_bar.name || 'Bookmarks';
+
+        if (depth === 0) {
+            markdown += `- **${rootName}**\n`;
+            depth += 1;
+        }
+
+        for (const node of bookmarkNodes) {
+            const indent = '  '.repeat(depth);
+            if (node.type === 'url') {
+                markdown += `${indent}- [${node.name}](${node.url})`;
+                if (isEditable) {
+                    markdown += `<span class="edit-icon" data-guid="${node.guid}">✏️</span>`;
+                }
+                markdown += '\n';
+                if (node.meta_info && (node.meta_info.Description || node.meta_info.Nickname)) {
+                    const descriptionIndent = '  '.repeat(depth + 1);
+                    if (node.meta_info.Description) {
+                        markdown += `${descriptionIndent}- Description: ${node.meta_info.Description}`;
+                        if (isEditable) {
+                            markdown += `<span class="edit-icon" data-guid="${node.guid}">✏️</span>`;
+                        }
+                        markdown += '\n';
+                    }
+                    if (node.meta_info.Nickname) {
+                        markdown += `${descriptionIndent}- Short Name: ${node.meta_info.Nickname}`;
+                        if (isEditable) {
+                            markdown += `<span class="edit-icon" data-guid="${node.guid}">✏️</span>`;
+                        }
+                        markdown += '\n';
+                    }
+                }
+
+            } else if (node.type === 'folder') {
+                markdown += `${indent}- **${node.name}**`;
+                if (isEditable) {
+                    markdown += `<span class="edit-icon" data-guid="${node.guid}">✏️</span>`;
+                }
+                markdown += '\n';
+                if (node.children) {
+                    markdown += this.generateBookmarkListMarkdown(node.children, depth + 1, null, isEditable);
+                }
+            }
+        }
+
+        return markdown;
     }
-    return markdown;
-}
-    
+
     private findFolderByName(nodes: BookmarkNode[], folderName: string): BookmarkNode | null {
         for (const node of nodes) {
             if (node.type === 'folder' && node.name === folderName) {
@@ -201,12 +259,12 @@ generateBookmarkListMarkdown(bookmarkNodes: BookmarkNode[], depth = 0, rootFolde
         if (!this.bookmarksData) {
             throw new Error('Bookmarks data not loaded. Call loadBookmarks() first.');
         }
-    
+
         const roots = [this.bookmarksData.roots.bookmark_bar, this.bookmarksData.roots.other, this.bookmarksData.roots.synced];
         const selectedRoot = roots[rootIndex] || roots[0];
         return this.getBookmarksAtDepth(selectedRoot, depth);
     }
-    
+
     private getBookmarksAtDepth(node: BookmarkNode, depth: number): BookmarkNode[] {
         if (depth === 0) {
             return node.children || [];

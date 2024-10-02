@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS } from './settings/settings';
-import { VivaldiBookmarksFetcher } from './fetcher/VivaldiBookmarksFetcher'; // Adjust the path based on your file structure
+import { VivaldiBookmarksFetcher } from './fetcher/VivaldiBookmarksFetcher';
 import { EditBookmarkModal } from './EditBookmarkModal';
 import fs from 'fs';
 
@@ -22,15 +22,6 @@ export default class MyPlugin extends Plugin {
         }
 
         this.addSettingTab(new SettingTab(this.app, this));
-
-        // If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-        // Using this function will automatically remove the event listener when this plugin is disabled.
-        this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-            console.log('click', evt);
-        });
-
-        // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-        this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
         // ! "Bookmark" code block
 
@@ -56,36 +47,39 @@ export default class MyPlugin extends Plugin {
                 el.querySelectorAll('.edit-icon').forEach(icon => {
                     icon.addEventListener('click', (event) => {
                         const target = event.target as HTMLElement;
-                        const parentElement = target.parentElement;
-
-                        if (parentElement) {
-                            let itemType = '';
-                            let initialTitle = '';
-                            let initialUrl = '';
-
-                            const boldElement = parentElement.querySelector('strong, b');
-                            if (boldElement) {
-                                itemType = 'Folder';
-                                initialTitle = boldElement.textContent?.trim() || '';
-                            }
-                            else {
-                                const linkElement = parentElement.querySelector('a');
-                                if (linkElement) {
-                                    itemType = 'Bookmark';
-                                    initialTitle = linkElement.textContent?.trim() || '';
-                                    initialUrl = linkElement.getAttribute('href') || '';
+                        const guid = target.getAttribute('data-guid');
+                        if (guid && this.bookmarksFetcher) {
+                            const bookmarkData = this.bookmarksFetcher.getBookmarkByGuid(guid);
+                            if (bookmarkData) {
+                                const { node, type } = bookmarkData;
+            
+                                let initialTitle = '';
+                                let initialUrl = '';
+            
+                                switch (type) {
+                                    case 'Bookmark':
+                                        initialTitle = node.name;
+                                        initialUrl = node.url || '';
+                                        break;
+                                    case 'Bookmark Description':
+                                        initialTitle = node.meta_info?.Description || '';
+                                        break;
+                                    case 'Bookmark Short Name':
+                                        initialTitle = node.meta_info?.Nickname || '';
+                                        break;
+                                    case 'Folder':
+                                        initialTitle = node.name;
+                                        break;
+                                    case 'Folder Description':
+                                        initialTitle = node.meta_info?.Description || '';
+                                        break;
+                                    case 'Folder Short Name':
+                                        initialTitle = node.meta_info?.Nickname || '';
+                                        break;
                                 }
+            
+                                new EditBookmarkModal(this.app, type, initialTitle, initialUrl).open();
                             }
-                            if (parentElement.textContent?.startsWith('Description:')) {
-                                itemType = 'Description';
-                                initialTitle = parentElement.textContent.replace('Description:', '').trim();
-                            }
-                            else if (parentElement.textContent?.startsWith('Short Name:')) {
-                                itemType = 'Short Name';
-                                initialTitle = parentElement.textContent.replace('Short Name:', '').trim();
-                            }
-
-                            new EditBookmarkModal(this.app, itemType, initialTitle, initialUrl).open();
                         }
                     });
                 });
@@ -130,7 +124,17 @@ class SettingTab extends PluginSettingTab {
 
         containerEl.empty();
 
-        // ! New setting for the file path
+        new Setting(containerEl)
+            .setName('Browser')
+            .setDesc('Select the browser for bookmarks.')
+            .addDropdown(dropdown => dropdown
+                .addOption('Chrome', 'Chrome')
+                .addOption('Vivaldi', 'Vivaldi')
+                .setValue(this.plugin.settings.browser)
+                .onChange(async (value: 'Chrome' | 'Vivaldi') => {
+                    this.plugin.settings.browser = value;
+                    await this.plugin.saveSettings();
+                }));
         new Setting(containerEl)
             .setName('Select Bookmarks File')
             .setDesc('Select a local file for bookmarks.')
@@ -141,5 +145,6 @@ class SettingTab extends PluginSettingTab {
                     this.plugin.settings.selectBookmarksFile = value;
                     await this.plugin.saveSettings();
                 }));
+
     }
 }
