@@ -26,7 +26,6 @@ data.json
 .npmrc
 .esbuild.config.mjs
 version-bump.mjs
-tsconfig.json
 versions.json
 test-vault/
 esbuild.config.mjs
