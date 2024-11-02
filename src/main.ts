@@ -24,8 +24,6 @@ export default class MyPlugin extends Plugin {
         this.addSettingTab(new SettingTab(this.app, this));
 
         // ! "Bookmark" code block
-
-
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
             if (!this.bookmarksFetcher || !this.bookmarksFetcher.bookmarksData) {
                 el.createEl('div').setText('Bookmarks data not loaded.');
@@ -148,3 +146,4 @@ class SettingTab extends PluginSettingTab {
 
     }
 }
+
