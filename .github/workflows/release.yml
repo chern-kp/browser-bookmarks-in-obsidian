@@ -38,4 +38,4 @@ jobs:
             --draft \
             main.js \
             manifest.json \
-            styles.css
+            src/styles.css
