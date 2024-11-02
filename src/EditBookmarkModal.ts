@@ -32,51 +32,50 @@ export class EditBookmarkModal extends Modal {
         this.result.url = initialUrl;
     }
 
-    onOpen() {
-        const { contentEl } = this;
+onOpen() {
+    const { contentEl } = this;
 
-        contentEl.createEl('h2', { text: `Edit ${this.itemType}` });
+    contentEl.createEl('h2', { text: `Edit ${this.itemType}` });
 
-        switch (this.itemType) {
-            case 'Bookmark':
-                this.createBookmarkForm();
-                break;
-            case 'Bookmark Description':
-            case 'Folder Description':
-                this.createDescriptionForm();
-                break;
-            case 'Bookmark Short Name':
-            case 'Folder Short Name':
-                this.createShortNameForm();
-                break;
-            case 'Folder':
-                this.createFolderForm();
-                break;
-        }
-
-        new Setting(contentEl)
-            .addButton((btn) =>
-                btn
-                    .setButtonText('Close')
-                    .onClick(() => {
-                        this.close();
-                    })
-            )
-            .addButton((btn) =>
-                btn
-                    .setButtonText('Save')
-                    .setCta()
-                    .onClick(async () => {
-                        try {
-                            await this.onSave(this.result);
-                            new Notice('Changes saved successfully!');
-                            this.close();
-                        } catch (error) {
-                            new Notice('Error saving changes: ' + error.message);
-                        }
-                    })
-            );
+    switch (this.itemType) {
+        case 'Bookmark':
+            this.createBookmarkForm();
+            break;
+        case 'Bookmark Description':
+        case 'Folder Description':
+            this.createDescriptionForm();
+            break;
+        case 'Bookmark Short Name':
+        case 'Folder Short Name':
+            this.createShortNameForm();
+            break;
+        case 'Folder':
+            this.createFolderForm();
+            break;
     }
+
+    new Setting(contentEl)
+        .addButton((btn) =>
+            btn
+                .setButtonText('Close')
+                .onClick(() => {
+                    this.close();
+                })
+        )
+        .addButton((btn) =>
+            btn
+                .setButtonText('Save')
+                .setCta()
+                .onClick(async () => {
+                    try {
+                        await this.onSave(this.result);
+                        this.close();
+                    } catch (error) {
+                        new Notice('Error saving changes: ' + error.message);
+                    }
+                })
+        );
+}
 
     private createBookmarkForm() {
         new Setting(this.contentEl)
