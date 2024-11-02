@@ -1,7 +1,7 @@
 {
 	"id": "browser-bookmarks-in-obsidian",
 	"name": "Browser Bookmarks in Obsidian",
-	"version": "1.0.0.4",
+	"version": "1.0.0.5",
 	"minAppVersion": "0.15.0",
 	"description": "Display browser bookmarks in obsidian note",
 	"author": "chern-kp",
