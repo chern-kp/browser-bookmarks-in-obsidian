@@ -36,5 +36,6 @@ jobs:
           gh release create "$tag" \
             --title="$tag" \
             --draft \
-            main.js manifest.json src/styles.css src/EditBookmarkModal.ts src/settings/settings.ts 
-            src/fetcher/constants.ts src/fetcher/types.ts src/fetcher/VivaldiBookmarksFetcher.ts
+            main.js \
+            manifest.json \
+            src\styles.css
