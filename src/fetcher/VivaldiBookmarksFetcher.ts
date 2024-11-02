@@ -6,7 +6,7 @@ export class VivaldiBookmarksFetcher {
     bookmarksData: BookmarksData | null = null;
     private bookmarkIndex: Record<string, { node: BookmarkNode, type: BookmarkType }> = {};
 
-    constructor(private filePath: string) {}
+    constructor(private filePath: string) { }
 
     async loadBookmarks(): Promise<void> {
         try {
@@ -21,13 +21,13 @@ export class VivaldiBookmarksFetcher {
 
     private determineNodeType(node: BookmarkNode): BookmarkType {
         const { type, meta_info } = node;
-        
+
         if (type === BookmarkNodeType.FOLDER) {
             if (meta_info?.Description) return 'Folder Description';
             if (meta_info?.Nickname) return 'Folder Short Name';
             return 'Folder';
         }
-        
+
         if (meta_info?.Description) return 'Bookmark Description';
         if (meta_info?.Nickname) return 'Bookmark Short Name';
         return 'Bookmark';
@@ -87,18 +87,16 @@ export class VivaldiBookmarksFetcher {
         }
 
         const markdown: string[] = [];
-        if (depth === 0) {
-            const rootName = this.bookmarksData?.roots.bookmark_bar.name || CONSTANTS.DEFAULT_ROOT_NAME;
-            markdown.push(`- **${rootName}**\n`);
-            depth++;
-        }
+        const rootName = this.bookmarksData?.roots.bookmark_bar.name || CONSTANTS.DEFAULT_ROOT_NAME;
+        markdown.push(`# ${rootName}\n`);
 
         bookmarkNodes.forEach(node => {
-            markdown.push(this.generateNodeMarkdown(node, depth, isEditable));
+            markdown.push(this.generateNodeMarkdown(node, 0, isEditable));
         });
 
         return markdown.join('');
     }
+
 
     private generateRootFolderMarkdown(
         bookmarkNodes: BookmarkNode[], 
@@ -107,74 +105,68 @@ export class VivaldiBookmarksFetcher {
     ): string {
         const rootNode = this.findFolderByName(bookmarkNodes, rootFolder);
         if (!rootNode) {
-            return `- Root folder "${rootFolder}" not found.\n`;
+            return `# ${rootFolder}\n- Root folder "${rootFolder}" not found.\n`;
         }
     
         const markdown: string[] = [];
-        markdown.push(`- **${rootNode.name}**\n`);
-        markdown.push(this.generateBookmarkListMarkdown(
-            rootNode.children || [], 
-            1, 
-            null, 
-            isEditable
-        ));
+        markdown.push(`# ${rootNode.name}\n`);
+        
+        if (rootNode.children) {
+            rootNode.children.forEach(child => {
+                markdown.push(this.generateNodeMarkdown(child, 0, isEditable));
+            });
+        }
     
         return markdown.join('');
     }
-    
+
     private generateFolderNodeMarkdown(
-        node: BookmarkNode, 
-        indent: string, 
-        depth: number, 
+        node: BookmarkNode,
+        indent: string,
+        depth: number,
         isEditable: boolean
     ): string {
         const markdown: string[] = [];
-        
-        // Add folder name with edit icon if editable
+
         markdown.push(`${indent}- **${node.name}**`);
         if (isEditable) {
             markdown.push(`<span class="edit-icon" data-guid="${node.guid}">${CONSTANTS.EDIT_ICON}</span>`);
         }
         markdown.push('\n');
-    
-        // Add folder meta information if exists
+
         if (node.meta_info) {
             const { Description, Nickname } = node.meta_info;
             const metaIndent = `${indent}  `;
-            
+
             if (Description) {
                 markdown.push(this.generateMetaInfoMarkdown(
-                    metaIndent, 
-                    'Description', 
-                    Description, 
-                    node.guid, 
+                    metaIndent,
+                    'Description',
+                    Description,
+                    node.guid,
                     isEditable
                 ));
             }
             if (Nickname) {
                 markdown.push(this.generateMetaInfoMarkdown(
-                    metaIndent, 
-                    'Short Name', 
-                    Nickname, 
-                    node.guid, 
+                    metaIndent,
+                    'Short Name',
+                    Nickname,
+                    node.guid,
                     isEditable
                 ));
             }
         }
-    
-        // Recursively process children
+
         if (node.children) {
-            markdown.push(this.generateBookmarkListMarkdown(
-                node.children, 
-                depth + 1, 
-                null, 
-                isEditable
-            ));
+            node.children.forEach(child => {
+                markdown.push(this.generateNodeMarkdown(child, depth + 1, isEditable));
+            });
         }
-    
+
         return markdown.join('');
     }
-    
+
     private findFolderByName(nodes: BookmarkNode[], folderName: string): BookmarkNode | null {
         for (const node of nodes) {
             if (node.type === BookmarkNodeType.FOLDER && node.name === folderName) {
@@ -190,9 +182,9 @@ export class VivaldiBookmarksFetcher {
         return null;
     }
 
-public getBookmarkByGuid(guid: string): { node: BookmarkNode, type: BookmarkType } | null {
-    return this.bookmarkIndex[guid] || null;
-}
+    public getBookmarkByGuid(guid: string): { node: BookmarkNode, type: BookmarkType } | null {
+        return this.bookmarkIndex[guid] || null;
+    }
 
     private generateNodeMarkdown(node: BookmarkNode, depth: number, isEditable: boolean): string {
         const indent = ' '.repeat(CONSTANTS.INDENT_SPACES * depth);
@@ -207,9 +199,10 @@ public getBookmarkByGuid(guid: string): { node: BookmarkNode, type: BookmarkType
         return markdown.join('');
     }
 
+
     private generateUrlNodeMarkdown(node: BookmarkNode, indent: string, isEditable: boolean): string {
         const markdown: string[] = [];
-        
+
         markdown.push(`${indent}- [${node.name}](${node.url})`);
         if (isEditable) {
             markdown.push(`<span class="edit-icon" data-guid="${node.guid}">${CONSTANTS.EDIT_ICON}</span>`);
@@ -219,7 +212,7 @@ public getBookmarkByGuid(guid: string): { node: BookmarkNode, type: BookmarkType
         if (node.meta_info) {
             const { Description, Nickname } = node.meta_info;
             const metaIndent = `${indent}  `;
-            
+
             if (Description) {
                 markdown.push(this.generateMetaInfoMarkdown(metaIndent, 'Description', Description, node.guid, isEditable));
             }
@@ -232,14 +225,14 @@ public getBookmarkByGuid(guid: string): { node: BookmarkNode, type: BookmarkType
     }
 
     private generateMetaInfoMarkdown(
-        indent: string, 
-        label: string, 
-        value: string, 
-        guid: string, 
+        indent: string,
+        label: string,
+        value: string,
+        guid: string,
         isEditable: boolean
     ): string {
         const markdown = `${indent}- ${label}: ${value}`;
-        const editIcon = isEditable ? 
+        const editIcon = isEditable ?
             `<span class="edit-icon" data-guid="${guid}">${CONSTANTS.EDIT_ICON}</span>` : '';
         return `${markdown}${editIcon}\n`;
     }
