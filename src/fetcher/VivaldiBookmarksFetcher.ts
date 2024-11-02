@@ -236,4 +236,60 @@ export class VivaldiBookmarksFetcher {
             `<span class="edit-icon" data-guid="${guid}">${CONSTANTS.EDIT_ICON}</span>` : '';
         return `${markdown}${editIcon}\n`;
     }
+
+    async saveBookmarkChanges(
+        guid: string, 
+        changes: {
+            title?: string;
+            url?: string;
+            description?: string;
+            shortName?: string;
+        }
+    ): Promise<void> {
+        if (!this.bookmarksData) {
+            throw new Error('Bookmarks data not loaded');
+        }
+
+        const bookmarkData = this.bookmarkIndex[guid];
+        if (!bookmarkData) {
+            throw new Error('Bookmark not found');
+        }
+
+        const { node, type } = bookmarkData;
+
+        switch (type) {
+            case 'Bookmark':
+                if (changes.title) node.name = changes.title;
+                if (changes.url) node.url = changes.url;
+                break;
+            case 'Bookmark Description':
+            case 'Folder Description':
+                if (!node.meta_info) node.meta_info = {};
+                if (changes.description) node.meta_info.Description = changes.description;
+                break;
+            case 'Bookmark Short Name':
+            case 'Folder Short Name':
+                if (!node.meta_info) node.meta_info = {};
+                if (changes.shortName) node.meta_info.Nickname = changes.shortName;
+                break;
+            case 'Folder':
+                if (changes.title) node.name = changes.title;
+                break;
+        }
+
+        node.date_modified = new Date().getTime().toString();
+        await this.saveToFile();
+        this.buildBookmarkIndex();
+    }
+
+    private async saveToFile(): Promise<void> {
+        try {
+            const jsonString = JSON.stringify(this.bookmarksData, null, 2);
+            await fsPromises.writeFile(this.filePath, jsonString, 'utf-8');
+        } catch (error) {
+            console.error('Error saving bookmarks file:', error);
+            throw error;
+        }
+    }
+
 }

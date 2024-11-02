@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer, MarkdownPostProcessorContext, Notice } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS } from './settings/settings';
 import { VivaldiBookmarksFetcher } from './fetcher/VivaldiBookmarksFetcher';
 import { EditBookmarkModal } from './EditBookmarkModal';
@@ -29,59 +29,94 @@ export default class MyPlugin extends Plugin {
                 el.createEl('div').setText('Bookmarks data not loaded.');
                 return;
             }
-
+        
             const rootFolder = this.parseRootFolder(source);
             const isEditable = this.parseIsEditable(source);
-            const markdown = this.bookmarksFetcher.generateBookmarkListMarkdown(
-                this.bookmarksFetcher.bookmarksData.roots.bookmark_bar.children || [],
-                0,
-                rootFolder,
-                isEditable
-            );
+            
+            const renderContent = async () => {
+                const markdown = this.bookmarksFetcher?.generateBookmarkListMarkdown(
+                    this.bookmarksFetcher.bookmarksData?.roots.bookmark_bar.children || [],
+                    0,
+                    rootFolder,
+                    isEditable
+                );
+                
+                el.empty();
+                if (markdown) {
+                    await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
+                    this.setupEditListeners(el, isEditable, rootFolder, ctx);
+                }
+            };
+        
+            await renderContent();
+        });
+    }
 
-            await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
-
-            if (isEditable) {
-                el.querySelectorAll('.edit-icon').forEach(icon => {
-                    icon.addEventListener('click', (event) => {
-                        const target = event.target as HTMLElement;
-                        const guid = target.getAttribute('data-guid');
-                        if (guid && this.bookmarksFetcher) {
-                            const bookmarkData = this.bookmarksFetcher.getBookmarkByGuid(guid);
-                            if (bookmarkData) {
-                                const { node, type } = bookmarkData;
-            
-                                let initialTitle = '';
-                                let initialUrl = '';
-            
-                                switch (type) {
-                                    case 'Bookmark':
-                                        initialTitle = node.name;
-                                        initialUrl = node.url || '';
-                                        break;
-                                    case 'Bookmark Description':
-                                        initialTitle = node.meta_info?.Description || '';
-                                        break;
-                                    case 'Bookmark Short Name':
-                                        initialTitle = node.meta_info?.Nickname || '';
-                                        break;
-                                    case 'Folder':
-                                        initialTitle = node.name;
-                                        break;
-                                    case 'Folder Description':
-                                        initialTitle = node.meta_info?.Description || '';
-                                        break;
-                                    case 'Folder Short Name':
-                                        initialTitle = node.meta_info?.Nickname || '';
-                                        break;
-                                }
-            
-                                new EditBookmarkModal(this.app, type, initialTitle, initialUrl).open();
+    private setupEditListeners(el: HTMLElement, isEditable: boolean, rootFolder: string | null, ctx: MarkdownPostProcessorContext) {
+        if (!isEditable) return;
+    
+        el.querySelectorAll('.edit-icon').forEach(icon => {
+            icon.addEventListener('click', async (event) => {
+                const target = event.target as HTMLElement;
+                const guid = target.getAttribute('data-guid');
+                
+                if (!guid || !this.bookmarksFetcher) return;
+    
+                const bookmarkData = this.bookmarksFetcher.getBookmarkByGuid(guid);
+                if (!bookmarkData) return;
+    
+                const { node, type } = bookmarkData;
+                let initialTitle = '';
+                let initialUrl = '';
+    
+                switch (type) {
+                    case 'Bookmark':
+                        initialTitle = node.name;
+                        initialUrl = node.url || '';
+                        break;
+                    case 'Bookmark Description':
+                    case 'Folder Description':
+                        initialTitle = node.meta_info?.Description || '';
+                        break;
+                    case 'Bookmark Short Name':
+                    case 'Folder Short Name':
+                        initialTitle = node.meta_info?.Nickname || '';
+                        break;
+                    case 'Folder':
+                        initialTitle = node.name;
+                        break;
+                }
+    
+                new EditBookmarkModal(
+                    this.app,
+                    type,
+                    initialTitle,
+                    initialUrl,
+                    guid,
+                    async (changes) => {
+                        try {
+                            await this.bookmarksFetcher?.saveBookmarkChanges(guid, changes);
+                            const markdown = this.bookmarksFetcher?.generateBookmarkListMarkdown(
+                                this.bookmarksFetcher.bookmarksData?.roots.bookmark_bar.children || [],
+                                0,
+                                rootFolder,
+                                isEditable
+                            );
+                            
+                            el.empty();
+                            if (markdown) {
+                                await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
+                                this.setupEditListeners(el, isEditable, rootFolder, ctx);
                             }
+    
+                            new Notice('Changes saved successfully!');
+                        } catch (error) {
+                            console.error('Error saving changes:', error);
+                            new Notice(`Error saving changes: ${error.message}`);
                         }
-                    });
-                });
-            }
+                    }
+                ).open();
+            });
         });
     }
 
