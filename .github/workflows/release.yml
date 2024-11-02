@@ -39,4 +39,9 @@ jobs:
             main.js \
             manifest.json \
             src/styles.css \
-            src/fetcher/VivaldiBookmarksFetcher.ts 
+            src/EditBookmarkModal.ts \
+            src/fetcher/VivaldiBookmarksFetcher.ts \
+            src/fetcher/types.ts \
+            src/fetcher/constants.ts \
+            src/settings/settings.ts \
+
