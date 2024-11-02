@@ -33,3 +33,12 @@ esbuild.config.mjs
 package-lock.json
 .editorconfig
 /src/bookmark_file_example.json
+.DS_Store
+/node_modules
+/.editorconfig
+/.eslintignore
+/.eslintrc
+/main.js
+/package-lock.json
+/version-bump.mjs
+.npmrc
