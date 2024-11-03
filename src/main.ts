@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer, MarkdownPostProcessorContext, Notice } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, MarkdownRenderer, MarkdownPostProcessorContext, Notice, setIcon } from 'obsidian';
 import { MyPluginSettings, DEFAULT_SETTINGS } from './settings/settings';
 import { VivaldiBookmarksFetcher } from './fetcher/VivaldiBookmarksFetcher';
 import { EditBookmarkModal } from './EditBookmarkModal';
@@ -11,6 +11,7 @@ export default class MyPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
+        await this.loadStyles();
 
         //! Parse and traverse bookmarks if file exists
         const filePath = this.settings.selectBookmarksFile;
@@ -25,50 +26,79 @@ export default class MyPlugin extends Plugin {
 
         // ! "Bookmark" code block
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
+            const containerEl = el.createEl('div', { cls: 'bookmarks-container' });
+
+            const buttonContainer = containerEl.createEl('div', {
+                cls: 'bookmarks-header' 
+            });
+
+            const updateButton = buttonContainer.createEl('button', {
+                cls: 'bookmarks-update-button', 
+                attr: { 'aria-label': 'Update bookmarks' }
+            });
+            setIcon(updateButton, 'refresh-cw');
+
             if (!this.bookmarksFetcher || !this.bookmarksFetcher.bookmarksData) {
-                el.createEl('div').setText('Bookmarks data not loaded.');
+                containerEl.createEl('div').setText('Bookmarks data not loaded.');
                 return;
             }
-        
+
             const rootFolder = this.parseRootFolder(source);
             const isEditable = this.parseIsEditable(source);
-            
+
+            updateButton.addEventListener('click', async () => {
+                try {
+                    await this.bookmarksFetcher?.loadBookmarks();
+                    await renderContent();
+                    new Notice('Bookmarks updated successfully!');
+                } catch (error) {
+                    console.error('Error updating bookmarks:', error);
+                    new Notice('Error updating bookmarks');
+                }
+            });
+
+            const contentEl = containerEl.createEl('div', { cls: 'bookmarks-content' });
+
             const renderContent = async () => {
+                contentEl.empty();
                 const markdown = this.bookmarksFetcher?.generateBookmarkListMarkdown(
                     this.bookmarksFetcher.bookmarksData?.roots.bookmark_bar.children || [],
                     0,
                     rootFolder,
                     isEditable
                 );
-                
-                el.empty();
+
                 if (markdown) {
-                    await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
-                    this.setupEditListeners(el, isEditable, rootFolder, ctx);
+                    await MarkdownRenderer.renderMarkdown(markdown, contentEl, ctx.sourcePath, this);
+                    this.setupEditListeners(contentEl, isEditable, rootFolder, ctx);
                 }
             };
-        
+
             await renderContent();
         });
     }
 
+    private async loadStyles() {
+        await this.loadData();
+    }
+
     private setupEditListeners(el: HTMLElement, isEditable: boolean, rootFolder: string | null, ctx: MarkdownPostProcessorContext) {
         if (!isEditable) return;
-    
+
         el.querySelectorAll('.edit-icon').forEach(icon => {
             icon.addEventListener('click', async (event) => {
                 const target = event.target as HTMLElement;
                 const guid = target.getAttribute('data-guid');
-                
+
                 if (!guid || !this.bookmarksFetcher) return;
-    
+
                 const bookmarkData = this.bookmarksFetcher.getBookmarkByGuid(guid);
                 if (!bookmarkData) return;
-    
+
                 const { node, type } = bookmarkData;
                 let initialTitle = '';
                 let initialUrl = '';
-    
+
                 switch (type) {
                     case 'Bookmark':
                         initialTitle = node.name;
@@ -86,7 +116,7 @@ export default class MyPlugin extends Plugin {
                         initialTitle = node.name;
                         break;
                 }
-    
+
                 new EditBookmarkModal(
                     this.app,
                     type,
@@ -102,13 +132,13 @@ export default class MyPlugin extends Plugin {
                                 rootFolder,
                                 isEditable
                             );
-                            
+
                             el.empty();
                             if (markdown) {
                                 await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
                                 this.setupEditListeners(el, isEditable, rootFolder, ctx);
                             }
-    
+
                             new Notice('Changes saved successfully!');
                         } catch (error) {
                             console.error('Error saving changes:', error);
@@ -180,5 +210,6 @@ class SettingTab extends PluginSettingTab {
                 }));
 
     }
+
 }
 

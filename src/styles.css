@@ -1,3 +1,39 @@
-/*
+.bookmarks-container {
+    position: relative;
+    padding-top: 24px;
+}
 
-*/
+.bookmarks-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.copy-code-button.bookmarks-update-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: var(--icon-opacity);
+    transition: var(--icon-color-transition);
+}
+
+.copy-code-button.bookmarks-update-button:hover {
+    color: var(--text-normal);
+    opacity: var(--icon-opacity-hover);
+}
+
+.bookmarks-content {
+    margin-top: 4px;
+}
