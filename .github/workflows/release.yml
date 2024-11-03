@@ -38,7 +38,7 @@ jobs:
             --draft \
             main.js \
             manifest.json \
-            src/styles.css \
+            styles.css \
             src/EditBookmarkModal.ts \
             src/fetcher/VivaldiBookmarksFetcher.ts \
             src/fetcher/types.ts \

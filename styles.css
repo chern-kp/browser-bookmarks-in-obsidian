@@ -1,9 +1,13 @@
-.bookmarks-container {
+.browser-bookmarks-plugin {
+    position: relative;
+}
+
+.browser-bookmarks-plugin .bookmarks-container {
     position: relative;
     padding-top: 24px;
 }
 
-.bookmarks-header {
+.browser-bookmarks-plugin .bookmarks-header {
     position: absolute;
     top: 0;
     left: 0;
@@ -14,7 +18,7 @@
     padding: 0 8px;
 }
 
-.copy-code-button.bookmarks-update-button {
+.browser-bookmarks-plugin .bookmarks-update-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -29,11 +33,21 @@
     transition: var(--icon-color-transition);
 }
 
-.copy-code-button.bookmarks-update-button:hover {
+.browser-bookmarks-plugin .bookmarks-update-button:hover {
     color: var(--text-normal);
     opacity: var(--icon-opacity-hover);
 }
 
-.bookmarks-content {
+.browser-bookmarks-plugin .bookmarks-content {
     margin-top: 4px;
+}
+
+.browser-bookmarks-plugin .edit-icon {
+    cursor: pointer;
+    margin-left: 4px;
+    opacity: 0.5;
+}
+
+.browser-bookmarks-plugin .edit-icon:hover {
+    opacity: 1;
 }

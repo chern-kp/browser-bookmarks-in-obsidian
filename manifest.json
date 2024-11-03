@@ -8,5 +8,5 @@
 	"authorUrl": "https://github.com/chern-kp",
 	"fundingUrl": "https://github.com/chern-kp",
 	"isDesktopOnly": true,
-	"styles": ["src/styles.css"]
+	"styles": ["styles.css"]
 }

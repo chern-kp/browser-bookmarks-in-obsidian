@@ -11,7 +11,6 @@ export default class MyPlugin extends Plugin {
 
     async onload() {
         await this.loadSettings();
-        await this.loadStyles();
 
         //! Parse and traverse bookmarks if file exists
         const filePath = this.settings.selectBookmarksFile;
@@ -26,6 +25,7 @@ export default class MyPlugin extends Plugin {
 
         // ! "Bookmark" code block
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
+            el.addClass('browser-bookmarks-plugin');            
             const containerEl = el.createEl('div', { cls: 'bookmarks-container' });
 
             const buttonContainer = containerEl.createEl('div', {
@@ -76,10 +76,6 @@ export default class MyPlugin extends Plugin {
 
             await renderContent();
         });
-    }
-
-    private async loadStyles() {
-        await this.loadData();
     }
 
     private setupEditListeners(el: HTMLElement, isEditable: boolean, rootFolder: string | null, ctx: MarkdownPostProcessorContext) {
