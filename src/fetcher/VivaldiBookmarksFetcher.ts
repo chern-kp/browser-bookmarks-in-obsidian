@@ -283,18 +283,37 @@ export class VivaldiBookmarksFetcher {
         if (!this.bookmarksData) {
             throw new Error('Bookmarks data not loaded');
         }
-
+    
         const bookmarkData = this.bookmarkIndex[guid];
         if (!bookmarkData) {
             throw new Error('Bookmark not found');
         }
-
+    
         const { node, type } = bookmarkData;
-
+    
         switch (type) {
             case 'Bookmark':
                 if (changes.title) node.name = changes.title;
                 if (changes.url) node.url = changes.url;
+                if (changes.description) {
+                    if (!node.meta_info) node.meta_info = {};
+                    node.meta_info.Description = changes.description;
+                }
+                if (changes.shortName) {
+                    if (!node.meta_info) node.meta_info = {};
+                    node.meta_info.Nickname = changes.shortName;
+                }
+                break;
+            case 'Folder':
+                if (changes.title) node.name = changes.title;
+                if (changes.description) {
+                    if (!node.meta_info) node.meta_info = {};
+                    node.meta_info.Description = changes.description;
+                }
+                if (changes.shortName) {
+                    if (!node.meta_info) node.meta_info = {};
+                    node.meta_info.Nickname = changes.shortName;
+                }
                 break;
             case 'Bookmark Description':
             case 'Folder Description':
@@ -306,11 +325,8 @@ export class VivaldiBookmarksFetcher {
                 if (!node.meta_info) node.meta_info = {};
                 if (changes.shortName) node.meta_info.Nickname = changes.shortName;
                 break;
-            case 'Folder':
-                if (changes.title) node.name = changes.title;
-                break;
         }
-
+    
         node.date_modified = new Date().getTime().toString();
         await this.saveToFile();
         this.buildBookmarkIndex();

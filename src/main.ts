@@ -94,22 +94,28 @@ export default class MyPlugin extends Plugin {
                 const { node, type } = bookmarkData;
                 let initialTitle = '';
                 let initialUrl = '';
-
+                let initialDescription = '';
+                let initialShortName = '';
+                
                 switch (type) {
                     case 'Bookmark':
                         initialTitle = node.name;
                         initialUrl = node.url || '';
-                        break;
-                    case 'Bookmark Description':
-                    case 'Folder Description':
-                        initialTitle = node.meta_info?.Description || '';
-                        break;
-                    case 'Bookmark Short Name':
-                    case 'Folder Short Name':
-                        initialTitle = node.meta_info?.Nickname || '';
+                        initialDescription = node.meta_info?.Description || '';
+                        initialShortName = node.meta_info?.Nickname || '';
                         break;
                     case 'Folder':
                         initialTitle = node.name;
+                        initialDescription = node.meta_info?.Description || '';
+                        initialShortName = node.meta_info?.Nickname || '';
+                        break;
+                    case 'Bookmark Description':
+                    case 'Folder Description':
+                        initialDescription = node.meta_info?.Description || '';
+                        break;
+                    case 'Bookmark Short Name':
+                    case 'Folder Short Name':
+                        initialShortName = node.meta_info?.Nickname || '';
                         break;
                 }
 
@@ -118,6 +124,8 @@ export default class MyPlugin extends Plugin {
                     type,
                     initialTitle,
                     initialUrl,
+                    initialDescription,
+                    initialShortName,
                     guid,
                     async (changes) => {
                         try {
@@ -128,13 +136,13 @@ export default class MyPlugin extends Plugin {
                                 rootFolder,
                                 isEditable
                             );
-
+                
                             el.empty();
                             if (markdown) {
                                 await MarkdownRenderer.renderMarkdown(markdown, el, ctx.sourcePath, this);
                                 this.setupEditListeners(el, isEditable, rootFolder, ctx);
                             }
-
+                
                             new Notice('Changes saved successfully!');
                         } catch (error) {
                             console.error('Error saving changes:', error);
