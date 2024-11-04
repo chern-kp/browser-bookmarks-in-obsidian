@@ -27,25 +27,27 @@ export default class MyPlugin extends Plugin {
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
             el.addClass('browser-bookmarks-plugin');            
             const containerEl = el.createEl('div', { cls: 'bookmarks-container' });
-
+        
             const buttonContainer = containerEl.createEl('div', {
                 cls: 'bookmarks-header' 
             });
-
+        
             const updateButton = buttonContainer.createEl('button', {
                 cls: 'bookmarks-update-button', 
                 attr: { 'aria-label': 'Update bookmarks' }
             });
             setIcon(updateButton, 'refresh-cw');
-
+        
             if (!this.bookmarksFetcher || !this.bookmarksFetcher.bookmarksData) {
                 containerEl.createEl('div').setText('Bookmarks data not loaded.');
                 return;
             }
-
+        
             const rootFolder = this.parseRootFolder(source);
             const isEditable = this.parseIsEditable(source);
-
+            const bigDescription = this.parseBigDescription(source);
+            
+        
             updateButton.addEventListener('click', async () => {
                 try {
                     await this.bookmarksFetcher?.loadBookmarks();
@@ -56,24 +58,25 @@ export default class MyPlugin extends Plugin {
                     new Notice('Error updating bookmarks');
                 }
             });
-
+        
             const contentEl = containerEl.createEl('div', { cls: 'bookmarks-content' });
-
+        
             const renderContent = async () => {
                 contentEl.empty();
                 const markdown = this.bookmarksFetcher?.generateBookmarkListMarkdown(
                     this.bookmarksFetcher.bookmarksData?.roots.bookmark_bar.children || [],
                     0,
                     rootFolder,
-                    isEditable
+                    isEditable,
+                    bigDescription
                 );
-
+        
                 if (markdown) {
                     await MarkdownRenderer.renderMarkdown(markdown, contentEl, ctx.sourcePath, this);
                     this.setupEditListeners(contentEl, isEditable, rootFolder, ctx);
                 }
             };
-
+        
             await renderContent();
         });
     }
@@ -173,6 +176,11 @@ export default class MyPlugin extends Plugin {
 
     private parseIsEditable(source: string): boolean {
         const match = source.match(/isEditable:\s*(true|false)/i);
+        return match ? match[1].toLowerCase() === 'true' : false;
+    }
+
+    private parseBigDescription(source: string): boolean {
+        const match = source.match(/bigDescription:\s*(true|false)/i);
         return match ? match[1].toLowerCase() === 'true' : false;
     }
 }
