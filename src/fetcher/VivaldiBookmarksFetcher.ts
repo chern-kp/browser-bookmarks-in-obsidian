@@ -260,7 +260,10 @@ export class VivaldiBookmarksFetcher {
         markdown.push(line + '\n');
     
         if (bigDescription && node.meta_info?.Description) {
-            markdown.push(`${node.meta_info.Description}\n`);
+            const descriptionLines = node.meta_info.Description.split('\n');
+            descriptionLines.forEach(descLine => {
+                markdown.push(`${indent}  ${descLine}\n`);
+            });
         }
     
         if (node.meta_info?.Nickname) {
