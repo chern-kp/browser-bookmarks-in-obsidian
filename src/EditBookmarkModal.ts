@@ -97,15 +97,15 @@ export class EditBookmarkModal extends Modal {
         this.createTextSetting('Title', 'Enter title', this.initialTitle, (value) => {
             this.result.title = value;
         });
-
+    
         this.createTextSetting('URL', 'Enter URL', this.initialUrl, (value) => {
             this.result.url = value;
         });
-
+    
         this.createTextSetting('Description', 'Enter description', this.initialDescription, (value) => {
             this.result.description = value;
         });
-
+    
         this.createTextSetting('Short Name', 'Enter short name', this.initialShortName, (value) => {
             this.result.shortName = value;
         });
@@ -145,8 +145,8 @@ export class EditBookmarkModal extends Modal {
     ) {
         new Setting(this.contentEl)
             .setName(name)
-            .addText((text) =>
-                text
+            .addTextArea((textarea) =>
+                textarea
                     .setPlaceholder(placeholder)
                     .setValue(value)
                     .onChange(onChange)

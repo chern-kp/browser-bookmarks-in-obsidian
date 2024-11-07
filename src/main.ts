@@ -41,15 +41,20 @@ export default class MyPlugin extends Plugin {
 
     private registerMarkdownProcessor(): void {
         this.registerMarkdownCodeBlockProcessor("Bookmarks", async (source, el, ctx) => {
-            el.addClass('browser-bookmarks-plugin');            
+            el.addClass('browser-bookmarks-plugin');
+            const options = this.parseBookmarkOptions(source);
+            
+            if (options.bigDescription) {
+                el.setAttribute('data-big-description', 'true');
+            }
+            
             const containerEl = this.createBookmarksContainer(el);
             
             if (!this.isBookmarksDataAvailable()) {
                 this.showNoDataMessage(containerEl);
                 return;
             }
-
-            const options = this.parseBookmarkOptions(source);
+    
             await this.renderBookmarksContent(containerEl, options, ctx);
         });
     }
@@ -208,7 +213,14 @@ export default class MyPlugin extends Plugin {
     ): Promise<void> {
         try {
             await this.bookmarksFetcher?.saveBookmarkChanges(guid, changes);
-            await this.refreshContent(el, { rootFolder, isEditable: true, bigDescription: false }, ctx);
+            const containerEl = el.closest('.browser-bookmarks-plugin');
+            const bigDescription = containerEl?.hasAttribute('data-big-description') ?? false;
+            
+            await this.refreshContent(el, { 
+                rootFolder, 
+                isEditable: true, 
+                bigDescription 
+            }, ctx);
             new Notice('Changes saved successfully!');
         } catch (error) {
             if (error instanceof Error) {
